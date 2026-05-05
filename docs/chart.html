@@ -58,6 +58,48 @@
       padding: 40px 40px 32px;
     }
 
+    /* ── Column toggle ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .toggle-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 7px 16px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .toggle-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(200, 169, 110, 0.08);
+    }
+
+    .toggle-btn:hover:not(.active) {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+
+    .toggle-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+    }
+
+    /* ── Slider ── */
     .slider-section { margin-bottom: 36px; }
 
     .slider-label {
@@ -129,6 +171,7 @@
       cursor: pointer;
     }
 
+    /* ── Chart ── */
     .chart-area { display: flex; gap: 36px; align-items: flex-start; }
 
     .chart-wrap { flex: 0 0 300px; position: relative; }
@@ -158,6 +201,7 @@
       text-transform: uppercase;
     }
 
+    /* ── Legend ── */
     .legend { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 
     .legend-item {
@@ -172,7 +216,7 @@
     .legend-item:hover { background: rgba(255,255,255,0.04); }
 
     .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-    .legend-name { font-size: 0.7rem; color: var(--text); flex: 1; letter-spacing: 0.02em; }
+    .legend-name { font-size: 0.68rem; color: var(--text); flex: 1; letter-spacing: 0.02em; }
     .legend-pct { font-size: 0.7rem; color: var(--accent); font-weight: 500; min-width: 36px; text-align: right; }
     .legend-count { font-size: 0.65rem; color: var(--muted); min-width: 30px; text-align: right; }
 
@@ -198,6 +242,7 @@
       .chart-area { flex-direction: column; }
       .chart-wrap { flex: none; width: 100%; max-width: 280px; margin: 0 auto; }
       .card { padding: 24px 20px; }
+      .toggle-btn { font-size: 0.62rem; padding: 6px 10px; }
     }
   </style>
 </head>
@@ -205,12 +250,21 @@
 
 <header>
   <h1>Alumni <em>Job Sectors</em></h1>
-  <p>Company/Org Sector by Graduating Class</p>
+  <p>Sector breakdown by graduating class</p>
 </header>
 
 <div class="card">
   <div id="loading">Loading data...</div>
   <div id="app" style="display:none">
+
+    <!-- Column toggle -->
+    <div class="toggle-row">
+      <button class="toggle-btn active" id="btnComp">Company / Org Sector</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn" id="btnJob">Job Position Sector</button>
+    </div>
+
+    <!-- Year slider -->
     <div class="slider-section">
       <div class="slider-label">
         <span>Graduating Class</span>
@@ -220,6 +274,7 @@
       <input type="range" id="classSlider" min="0" step="1" value="0">
     </div>
 
+    <!-- Chart + legend -->
     <div class="chart-area">
       <div class="chart-wrap">
         <canvas id="pieChart" width="300" height="300"></canvas>
@@ -240,25 +295,37 @@
   const COLORS = [
     '#c8a96e','#6e9ec8','#c86e8a','#6ec8a4','#a46ec8',
     '#c8956e','#6ec8c8','#c8c86e','#8ac86e','#c86eb4',
-    '#6e7ec8','#c8746e','#b0c86e','#6e8ac8'
+    '#6e7ec8','#c8746e','#b0c86e','#6e8ac8','#c8b06e','#6ec8b4'
   ];
 
+  // Parse CSV with 3 columns; handle quoted fields with commas inside
   function parseCSV(text) {
     const lines = text.trim().split('\n');
     lines.shift(); // remove header
     return lines.map(line => {
-      const comma = line.indexOf(',');
-      const year = parseInt(line.slice(0, comma).trim());
-      const sector = line.slice(comma + 1).trim();
-      return { year, sector };
-    }).filter(d => !isNaN(d.year) && d.sector);
+      // Split respecting quoted fields
+      const cols = [];
+      let cur = '', inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else { cur += ch; }
+      }
+      cols.push(cur.trim());
+
+      const year = parseInt(cols[0]);
+      const comp = cols[1] || '';
+      const job  = cols[2] || '';
+      return { year, comp, job };
+    }).filter(d => !isNaN(d.year));
   }
 
-  function processYear(data, year) {
+  function processYear(data, year, field) {
     const counts = {};
-    data.filter(d => d.year === year).forEach(d => {
-      counts[d.sector] = (counts[d.sector] || 0) + 1;
-    });
+    data
+      .filter(d => d.year === year && d[field])
+      .forEach(d => { counts[d[field]] = (counts[d[field]] || 0) + 1; });
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     const total = sorted.reduce((s, [, v]) => s + v, 0);
     return { sorted, total };
@@ -266,8 +333,9 @@
 
   let chart;
 
-  function buildChart(data, colorMap, year) {
-    const { sorted, total } = processYear(data, year);
+  function buildChart(data, colorMaps, year, field) {
+    const colorMap = colorMaps[field];
+    const { sorted, total } = processYear(data, year, field);
     const labels = sorted.map(([s]) => s);
     const values = sorted.map(([, v]) => v);
     const colors = labels.map(l => colorMap[l]);
@@ -315,14 +383,15 @@
               titleColor: '#c8a96e',
               bodyColor: '#e8e6df',
               padding: 12,
-              titleFont: { family: "'DM Serif Display', serif", size: 14 },
-              bodyFont: { family: "'DM Mono', monospace", size: 12 },
+              titleFont: { family: "'DM Serif Display', serif", size: 13 },
+              bodyFont: { family: "'DM Mono', monospace", size: 11 },
             }
           }
         }
       });
     }
 
+    // Rebuild legend
     const legend = document.getElementById('legend');
     legend.innerHTML = '';
     sorted.forEach(([sector, count]) => {
@@ -339,44 +408,66 @@
     });
   }
 
-  fetch('Alumni Data Collection - JustCompSectAndClass.csv')
+  fetch('alumniCompSectorandJobSector.csv')
     .then(res => {
       if (!res.ok) throw new Error('Could not load CSV');
       return res.text();
     })
     .then(text => {
       const data = parseCSV(text);
-      const classes = [...new Set(data.map(d => d.year))].sort();
-      const allSectors = [...new Set(data.map(d => d.sector))].sort();
-      const colorMap = {};
-      allSectors.forEach((s, i) => { colorMap[s] = COLORS[i % COLORS.length]; });
+      const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
+      // Build a color map per field so colors are consistent within each view
+      const compSectors = [...new Set(data.map(d => d.comp).filter(Boolean))].sort();
+      const jobSectors  = [...new Set(data.map(d => d.job).filter(Boolean))].sort();
+
+      const colorMaps = { comp: {}, job: {} };
+      compSectors.forEach((s, i) => { colorMaps.comp[s] = COLORS[i % COLORS.length]; });
+      jobSectors.forEach((s, i)  => { colorMaps.job[s]  = COLORS[i % COLORS.length]; });
+
+      // State
+      let currentYear = classes[0];
+      let currentField = 'comp';
+
+      // Show app
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
+      // Slider
       const slider = document.getElementById('classSlider');
       slider.max = classes.length - 1;
 
+      // Year ticks
       const yearTicks = document.getElementById('yearTicks');
       classes.forEach((y, i) => {
         const span = document.createElement('span');
         span.textContent = y;
         if (i === 0) span.classList.add('active');
-        span.addEventListener('click', () => { slider.value = i; update(i); });
+        span.addEventListener('click', () => { slider.value = i; updateYear(i); });
         yearTicks.appendChild(span);
       });
 
-      function update(idx) {
-        const year = classes[idx];
-        document.getElementById('yearDisplay').textContent = year;
+      function updateYear(idx) {
+        currentYear = classes[idx];
+        document.getElementById('yearDisplay').textContent = currentYear;
         document.querySelectorAll('.year-ticks span').forEach((s, i) => {
           s.classList.toggle('active', i === idx);
         });
-        buildChart(data, colorMap, year);
+        buildChart(data, colorMaps, currentYear, currentField);
       }
 
-      slider.addEventListener('input', () => update(parseInt(slider.value)));
-      update(0);
+      function updateField(field) {
+        currentField = field;
+        document.getElementById('btnComp').classList.toggle('active', field === 'comp');
+        document.getElementById('btnJob').classList.toggle('active', field === 'job');
+        buildChart(data, colorMaps, currentYear, currentField);
+      }
+
+      slider.addEventListener('input', () => updateYear(parseInt(slider.value)));
+      document.getElementById('btnComp').addEventListener('click', () => updateField('comp'));
+      document.getElementById('btnJob').addEventListener('click', () => updateField('job'));
+
+      updateYear(0);
     })
     .catch(err => {
       document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
