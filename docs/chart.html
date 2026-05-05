@@ -275,11 +275,14 @@
     document.getElementById('centerN').textContent = total;
 
     if (chart) {
+      chart.setDatasetVisibility(0, true);
+      chart.setActiveElements([]);
+      chart.tooltip.setActiveElements([]);
       chart.data.labels = labels;
       chart.data.datasets[0].data = values;
       chart.data.datasets[0].backgroundColor = colors;
       chart.data.datasets[0].borderColor = colors;
-      chart.update('active');
+      chart.update('none');
     } else {
       const ctx = document.getElementById('pieChart').getContext('2d');
       chart = new Chart(ctx, {
@@ -292,7 +295,7 @@
             borderColor: colors,
             borderWidth: 2,
             hoverBorderWidth: 3,
-            hoverOffset: 8,
+            hoverOffset: 0,
           }]
         },
         options: {
