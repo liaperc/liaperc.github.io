@@ -295,7 +295,8 @@
   const COLORS = [
     '#c8a96e','#6e9ec8','#c86e8a','#6ec8a4','#a46ec8',
     '#c8956e','#6ec8c8','#c8c86e','#8ac86e','#c86eb4',
-    '#6e7ec8','#c8746e','#b0c86e','#6e8ac8','#c8b06e','#6ec8b4'
+    '#6e7ec8','#c8746e','#b0c86e','#6e8ac8','#c8b06e','#6ec8b4','#6ec88a',
+    '#c86e6e'
   ];
 
   // Parse CSV with 3 columns; handle quoted fields with commas inside
@@ -371,6 +372,8 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              z: 9999,
+              clip: false,
               callbacks: {
                 label: (ctx) => {
                   const pct = ((ctx.parsed / total) * 100).toFixed(1);
