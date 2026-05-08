@@ -351,9 +351,6 @@
     return { sorted, total };
   }
 
-  // Colors are picked in an order where every adjacent pair (i and i+1)
-  // is from a different hue family, so neighbouring slices in the pie
-  // are always visually distinct no matter how many slices there are.
   function assignColors(sorted) {
     const seq = [
       '#6e9ec8', // steel blue
@@ -375,7 +372,15 @@
       '#6e8ac8', // periwinkle
       '#9ec86e', // yellow-green
     ];
-    return sorted.map((_, i) => seq[i % seq.length]);
+    const n = sorted.length;
+    const colors = sorted.map((_, i) => seq[i % seq.length]);
+    // If the last slice wraps around to a color too similar to the first,
+    // replace it with a guaranteed warm color that won't clash with seq[0] (blue)
+    const lastIdx = (n - 1) % seq.length;
+    if (lastIdx === 0 || seq[lastIdx].startsWith('#6e')) {
+      colors[n - 1] = '#c8a96e'; // warm gold — always contrasts with blue
+    }
+    return colors;
   }
 
   let chart;
