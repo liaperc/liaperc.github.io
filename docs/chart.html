@@ -297,7 +297,9 @@
 </div>
 
 <script>
-
+  // Colors are arranged so that every adjacent pair in the list is visually
+  // distant (alternating warm/cool, different hue families). This prevents
+  // the first and last slice from being too similar when the chart wraps.
   const COLORS = [
     '#c8a96e', // warm gold
     '#6e9ec8', // steel blue
@@ -349,11 +351,31 @@
     return { sorted, total };
   }
 
-
+  // Colors are picked in an order where every adjacent pair (i and i+1)
+  // is from a different hue family, so neighbouring slices in the pie
+  // are always visually distinct no matter how many slices there are.
   function assignColors(sorted) {
-    const n = sorted.length;
-    const stride = Math.ceil(COLORS.length / 2); // jump half the palette each step
-    return sorted.map((_, i) => COLORS[(i * stride) % COLORS.length]);
+    const seq = [
+      '#6e9ec8', // steel blue
+      '#c86e8a', // rose
+      '#6ec8a4', // teal green
+      '#c8a96e', // warm gold
+      '#b46ec8', // purple
+      '#8ac86e', // lime green
+      '#c86e6e', // red
+      '#6ec8c8', // cyan
+      '#c8956e', // burnt orange
+      '#6e7ec8', // indigo
+      '#c8c86e', // yellow-lime
+      '#c86eb4', // magenta
+      '#6eb4c8', // sky blue
+      '#c86e95', // pink-red
+      '#6ec895', // seafoam
+      '#c8b46e', // sand
+      '#6e8ac8', // periwinkle
+      '#9ec86e', // yellow-green
+    ];
+    return sorted.map((_, i) => seq[i % seq.length]);
   }
 
   let chart;
