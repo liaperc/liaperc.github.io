@@ -174,12 +174,14 @@
     /* ── Chart ── */
     .chart-area { display: flex; gap: 36px; align-items: flex-start; }
 
-    .chart-wrap { flex: 0 0 300px; position: relative; }
+    /* Extra top padding gives tooltips room above the chart without overlapping the center label */
+    .chart-wrap { flex: 0 0 300px; position: relative; padding-top: 32px; }
     .chart-wrap canvas { display: block; }
 
     .chart-center-label {
       position: absolute;
-      top: 50%;
+      /* offset by the padding-top so it still centers on the canvas */
+      top: calc(50% + 16px);
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
@@ -293,18 +295,30 @@
 
 <script>
   const COLORS = [
-    '#c8a96e','#6e9ec8','#c86e8a','#6ec8a4','#a46ec8',
-    '#c8956e','#6ec8c8','#c8c86e','#8ac86e','#c86eb4',
-    '#6e7ec8','#c8746e','#b0c86e','#6e8ac8','#c8b06e','#6ec8b4','#6ec88a',
-    '#c86e6e'
+    '#c8a96e', // warm gold
+    '#6e9ec8', // steel blue
+    '#c86e8a', // rose
+    '#6ec8a4', // teal green
+    '#b46ec8', // purple
+    '#c8c86e', // yellow-lime
+    '#6e7ec8', // indigo
+    '#c8956e', // burnt orange
+    '#6ec8c8', // cyan
+    '#c86e6e', // red
+    '#8ac86e', // lime green
+    '#c86eb4', // magenta
+    '#6eb4c8', // sky blue
+    '#c8b46e', // sand
+    '#6e8ac8', // periwinkle
+    '#9ec86e', // yellow-green
+    '#c86e95', // pink-red
+    '#6ec895', // seafoam
   ];
 
-  // Parse CSV with 3 columns; handle quoted fields with commas inside
   function parseCSV(text) {
     const lines = text.trim().split('\n');
-    lines.shift(); // remove header
+    lines.shift();
     return lines.map(line => {
-      // Split respecting quoted fields
       const cols = [];
       let cur = '', inQ = false;
       for (let i = 0; i < line.length; i++) {
@@ -314,7 +328,6 @@
         else { cur += ch; }
       }
       cols.push(cur.trim());
-
       const year = parseInt(cols[0]);
       const comp = cols[1] || '';
       const job  = cols[2] || '';
@@ -332,14 +345,20 @@
     return { sorted, total };
   }
 
+  // Assign colors by interleaving: biggest slice gets color[0],
+  // second biggest gets color[1], etc. — so adjacent slices in the
+  // sorted order always step through the maximally-spaced palette.
+  function assignColors(sorted) {
+    return sorted.map((_, i) => COLORS[i % COLORS.length]);
+  }
+
   let chart;
 
-  function buildChart(data, colorMaps, year, field) {
-    const colorMap = colorMaps[field];
+  function buildChart(data, year, field) {
     const { sorted, total } = processYear(data, year, field);
     const labels = sorted.map(([s]) => s);
     const values = sorted.map(([, v]) => v);
-    const colors = labels.map(l => colorMap[l]);
+    const colors = assignColors(sorted);
 
     document.getElementById('centerN').textContent = total;
 
@@ -369,11 +388,14 @@
         options: {
           cutout: '62%',
           animation: { animateRotate: true, duration: 500 },
+          layout: {
+            // Push chart down so tooltips that appear above have room
+            padding: { top: 0, bottom: 0, left: 0, right: 0 }
+          },
           plugins: {
             legend: { display: false },
             tooltip: {
-              z: 9999,
-              clip: false,
+              position: 'nearest',
               callbacks: {
                 label: (ctx) => {
                   const pct = ((ctx.parsed / total) * 100).toFixed(1);
@@ -394,15 +416,15 @@
       });
     }
 
-    // Rebuild legend
+    // Rebuild legend — colors match chart order
     const legend = document.getElementById('legend');
     legend.innerHTML = '';
-    sorted.forEach(([sector, count]) => {
+    sorted.forEach(([sector, count], i) => {
       const pct = ((count / total) * 100).toFixed(1);
       const item = document.createElement('div');
       item.className = 'legend-item';
       item.innerHTML = `
-        <div class="legend-dot" style="background:${colorMap[sector]}"></div>
+        <div class="legend-dot" style="background:${colors[i]}"></div>
         <span class="legend-name">${sector}</span>
         <span class="legend-pct">${pct}%</span>
         <span class="legend-count">${count}</span>
@@ -420,27 +442,15 @@
       const data = parseCSV(text);
       const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
-      // Build a color map per field so colors are consistent within each view
-      const compSectors = [...new Set(data.map(d => d.comp).filter(Boolean))].sort();
-      const jobSectors  = [...new Set(data.map(d => d.job).filter(Boolean))].sort();
-
-      const colorMaps = { comp: {}, job: {} };
-      compSectors.forEach((s, i) => { colorMaps.comp[s] = COLORS[i % COLORS.length]; });
-      jobSectors.forEach((s, i)  => { colorMaps.job[s]  = COLORS[i % COLORS.length]; });
-
-      // State
       let currentYear = classes[0];
       let currentField = 'comp';
 
-      // Show app
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
-      // Slider
       const slider = document.getElementById('classSlider');
       slider.max = classes.length - 1;
 
-      // Year ticks
       const yearTicks = document.getElementById('yearTicks');
       classes.forEach((y, i) => {
         const span = document.createElement('span');
@@ -456,14 +466,14 @@
         document.querySelectorAll('.year-ticks span').forEach((s, i) => {
           s.classList.toggle('active', i === idx);
         });
-        buildChart(data, colorMaps, currentYear, currentField);
+        buildChart(data, currentYear, currentField);
       }
 
       function updateField(field) {
         currentField = field;
         document.getElementById('btnComp').classList.toggle('active', field === 'comp');
         document.getElementById('btnJob').classList.toggle('active', field === 'job');
-        buildChart(data, colorMaps, currentYear, currentField);
+        buildChart(data, currentYear, currentField);
       }
 
       slider.addEventListener('input', () => updateYear(parseInt(slider.value)));
