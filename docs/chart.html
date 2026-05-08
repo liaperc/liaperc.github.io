@@ -203,7 +203,8 @@
       text-transform: uppercase;
     }
 
-    .chart-center-label.hidden { opacity: 0; }
+    .chart-center-label.hidden { opacity: 0; transition: opacity 0.1s; }
+    .chart-center-label { transition: opacity 0.15s; }
 
     /* ── Legend ── */
     .legend { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
@@ -378,28 +379,36 @@
     } else {
       const centerLabel = document.getElementById('centerLabel');
 
-      // Plugin: hide center label whenever the tooltip overlaps it
+      // Plugin: hide center label whenever the tooltip overlaps it.
+      // We compare DOM bounding rects (page coordinates) so there's no
+      // canvas-scaling math that can go wrong.
       const hideOnOverlapPlugin = {
         id: 'hideOnOverlap',
         afterDraw(chartInstance) {
           const tooltip = chartInstance.tooltip;
+          // opacity goes to 0 when no slice is hovered
           if (!tooltip || tooltip.opacity === 0) {
             centerLabel.classList.remove('hidden');
             return;
           }
-          const { x, y, width, height } = tooltip;
+
+          // Convert tooltip canvas coords → page coords
           const canvas = chartInstance.canvas;
-          const rect = canvas.getBoundingClientRect();
-          const scaleX = canvas.width / rect.width;
-          const scaleY = canvas.height / rect.height;
-          // Center label sits at the canvas center
-          const cx = canvas.width / 2;
-          const cy = canvas.height / 2;
-          const labelR = 52; // rough radius of the center text area in px
-          // Tooltip box in canvas coords
-          const tx1 = x, ty1 = y, tx2 = x + width, ty2 = y + height;
-          const overlaps = tx2 > cx - labelR && tx1 < cx + labelR &&
-                           ty2 > cy - labelR && ty1 < cy + labelR;
+          const canvasRect = canvas.getBoundingClientRect();
+          const scaleX = canvasRect.width  / chartInstance.width;
+          const scaleY = canvasRect.height / chartInstance.height;
+
+          const tx1 = canvasRect.left + tooltip.x * scaleX;
+          const ty1 = canvasRect.top  + tooltip.y * scaleY;
+          const tx2 = tx1 + tooltip.width  * scaleX;
+          const ty2 = ty1 + tooltip.height * scaleY;
+
+          // Center label DOM rect
+          const lr = centerLabel.getBoundingClientRect();
+
+          const overlaps = tx2 > lr.left && tx1 < lr.right &&
+                           ty2 > lr.top  && ty1 < lr.bottom;
+
           centerLabel.classList.toggle('hidden', overlaps);
         }
       };
