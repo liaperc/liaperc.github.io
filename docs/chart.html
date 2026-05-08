@@ -203,6 +203,8 @@
       text-transform: uppercase;
     }
 
+    .chart-center-label.hidden { opacity: 0; }
+
     /* ── Legend ── */
     .legend { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 
@@ -280,7 +282,7 @@
     <div class="chart-area">
       <div class="chart-wrap">
         <canvas id="pieChart" width="300" height="300"></canvas>
-        <div class="chart-center-label">
+        <div class="chart-center-label" id="centerLabel">
           <span class="n" id="centerN"></span>
           <span class="label">responses</span>
         </div>
@@ -294,6 +296,9 @@
 </div>
 
 <script>
+  // Colors are arranged so that every adjacent pair in the list is visually
+  // distant (alternating warm/cool, different hue families). This prevents
+  // the first and last slice from being too similar when the chart wraps.
   const COLORS = [
     '#c8a96e', // warm gold
     '#6e9ec8', // steel blue
@@ -371,9 +376,38 @@
       chart.data.datasets[0].borderColor = colors;
       chart.update();
     } else {
+      const centerLabel = document.getElementById('centerLabel');
+
+      // Plugin: hide center label whenever the tooltip overlaps it
+      const hideOnOverlapPlugin = {
+        id: 'hideOnOverlap',
+        afterDraw(chartInstance) {
+          const tooltip = chartInstance.tooltip;
+          if (!tooltip || tooltip.opacity === 0) {
+            centerLabel.classList.remove('hidden');
+            return;
+          }
+          const { x, y, width, height } = tooltip;
+          const canvas = chartInstance.canvas;
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          // Center label sits at the canvas center
+          const cx = canvas.width / 2;
+          const cy = canvas.height / 2;
+          const labelR = 52; // rough radius of the center text area in px
+          // Tooltip box in canvas coords
+          const tx1 = x, ty1 = y, tx2 = x + width, ty2 = y + height;
+          const overlaps = tx2 > cx - labelR && tx1 < cx + labelR &&
+                           ty2 > cy - labelR && ty1 < cy + labelR;
+          centerLabel.classList.toggle('hidden', overlaps);
+        }
+      };
+
       const ctx = document.getElementById('pieChart').getContext('2d');
       chart = new Chart(ctx, {
         type: 'doughnut',
+        plugins: [hideOnOverlapPlugin],
         data: {
           labels,
           datasets: [{
