@@ -402,9 +402,16 @@
   <div id="app" style="display:none">
 
     <div class="toggle-row">
-      <button class="toggle-btn active" id="btnComp">Company / Org Sector</button>
+      <button class="toggle-btn active" id="btnJob">By job position &amp; professional engagement</button>
       <div class="toggle-divider"></div>
-      <button class="toggle-btn" id="btnJob">Job Position Sector</button>
+      <button class="toggle-btn" id="btnComp">By company/organization sector</button>
+    </div>
+
+    <div id="compNote" style="display:none; text-align:center; margin: -18px 0 24px;">
+      <span style="font-size:0.68rem; color:var(--muted); letter-spacing:0.04em;">
+        This tab only counts people currently working under a non-university employer.
+        Excludes those pursuing postgraduate degrees or who are self-employed.
+      </span>
     </div>
 
     <div class="slider-section">
@@ -669,7 +676,7 @@
       const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
       let currentYear = classes[0];
-      let currentField = 'comp';
+      let currentField = 'job';
 
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
@@ -699,6 +706,7 @@
         currentField = field;
         document.getElementById('btnComp').classList.toggle('active', field === 'comp');
         document.getElementById('btnJob').classList.toggle('active', field === 'job');
+        document.getElementById('compNote').style.display = field === 'comp' ? 'block' : 'none';
         buildChart(data, currentYear, currentField);
       }
 
