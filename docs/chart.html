@@ -465,26 +465,44 @@
   });
 
   // ── Colors ────────────────────────────────────────────────────────────────
-  // Colors are assigned once per sector name and stay fixed across all years.
-  const seq = [
-    '#6e9ec8', '#c86e8a', '#6ec8a4', '#c8a96e', '#b46ec8',
-    '#8ac86e', '#c86e6e', '#6ec8c8', '#c8956e', '#6e7ec8',
-    '#c8c86e', '#c86eb4', '#6eb4c8', '#c86e95', '#6ec895',
-    '#c8b46e', '#6e8ac8', '#9ec86e',
-  ];
+  // One unique color per sector, hand-assigned for maximum distinctiveness.
+  const SECTOR_COLORS = {
+    'Academia':                                                    '#c86e8a', // rose
+    'Arts/Media':                                                  '#c8a96e', // gold
+    'Biotechnology/Pharmaceuticals':                               '#6ec8a4', // teal
+    'Business Consulting':                                         '#b46ec8', // purple
+    'Education':                                                   '#6eb4c8', // sky blue
+    'Engineering':                                                 '#8ac86e', // lime green
+    'Entertainment':                                               '#c86e6e', // red
+    'Finance':                                                     '#6e7ec8', // indigo
+    'Health':                                                      '#c86eb4', // magenta
+    'Independent research institutions':                           '#6ec895', // seafoam
+    'Internal Communications/Management/Administration':           '#c8956e', // burnt orange
+    'Journalism':                                                  '#9ec86e', // yellow-green
+    'Law':                                                         '#c8c86e', // yellow-lime
+    'Marketing/Communications':                                    '#6e9ec8', // steel blue
+    'Other':                                                       '#a0a0a0', // grey
+    'Philanthropy/Public Charity':                                 '#6ec8c8', // cyan
+    'Politics/Government':                                         '#c86e95', // pink-red
+    'Product & Strategy (non-technical)':                         '#c8b46e', // sand
+    'Research - Engineering, Computational, Mathmatical, Physical Sciences': '#7ec86e', // green
+    'Research - Interdisciplinary':                                '#6e8ac8', // periwinkle
+    'Research - Life Sciences':                                    '#c87e6e', // salmon
+    'Research - Social Sciences & Humanities':                     '#ae6ec8', // violet
+    'Tech/Software':                                               '#6ec8b4', // mint
+    'UI/UX/Product Design/CAD':                                    '#c8ae6e', // tan
+  };
 
   let sectorColorMap = {};
 
   function buildColorMap(data) {
-    // Collect all normalized sector names across both fields and all years
     const allSectors = new Set();
     data.forEach(d => {
       if (d.comp) allSectors.add(normalizeLabel('comp', d.comp));
       if (d.job)  allSectors.add(normalizeLabel('job',  d.job));
     });
-    // Sort so the assignment is deterministic
-    [...allSectors].sort().forEach((sector, i) => {
-      sectorColorMap[sector] = seq[i % seq.length];
+    allSectors.forEach(sector => {
+      sectorColorMap[sector] = SECTOR_COLORS[sector] || '#aaaaaa';
     });
   }
 
@@ -562,7 +580,7 @@
       chart.data.labels = labels;
       chart.data.datasets[0].data = values;
       chart.data.datasets[0].backgroundColor = colors;
-      chart.data.datasets[0].borderColor = colors;
+      chart.data.datasets[0].borderColor = '#161920';
       chart.update();
     } else {
       const centerLabel = document.getElementById('centerLabel');
@@ -583,7 +601,7 @@
           datasets: [{
             data: values,
             backgroundColor: colors,
-            borderColor: colors,
+            borderColor: '#161920',
             borderWidth: 2,
             hoverBorderWidth: 3,
             hoverOffset: 0,
