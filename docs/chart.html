@@ -465,20 +465,31 @@
   });
 
   // ── Colors ────────────────────────────────────────────────────────────────
+  // Colors are assigned once per sector name and stay fixed across all years.
+  const seq = [
+    '#6e9ec8', '#c86e8a', '#6ec8a4', '#c8a96e', '#b46ec8',
+    '#8ac86e', '#c86e6e', '#6ec8c8', '#c8956e', '#6e7ec8',
+    '#c8c86e', '#c86eb4', '#6eb4c8', '#c86e95', '#6ec895',
+    '#c8b46e', '#6e8ac8', '#9ec86e',
+  ];
+
+  let sectorColorMap = {};
+
+  function buildColorMap(data) {
+    // Collect all normalized sector names across both fields and all years
+    const allSectors = new Set();
+    data.forEach(d => {
+      if (d.comp) allSectors.add(normalizeLabel('comp', d.comp));
+      if (d.job)  allSectors.add(normalizeLabel('job',  d.job));
+    });
+    // Sort so the assignment is deterministic
+    [...allSectors].sort().forEach((sector, i) => {
+      sectorColorMap[sector] = seq[i % seq.length];
+    });
+  }
+
   function assignColors(sorted) {
-    const seq = [
-      '#6e9ec8', '#c86e8a', '#6ec8a4', '#c8a96e', '#b46ec8',
-      '#8ac86e', '#c86e6e', '#6ec8c8', '#c8956e', '#6e7ec8',
-      '#c8c86e', '#c86eb4', '#6eb4c8', '#c86e95', '#6ec895',
-      '#c8b46e', '#6e8ac8', '#9ec86e',
-    ];
-    const n = sorted.length;
-    const colors = sorted.map((_, i) => seq[i % seq.length]);
-    const lastIdx = (n - 1) % seq.length;
-    if (lastIdx === 0 || seq[lastIdx].startsWith('#6e')) {
-      colors[n - 1] = '#c8a96e';
-    }
-    return colors;
+    return sorted.map(([sector]) => sectorColorMap[sector] || '#aaaaaa');
   }
 
   // ── Label normalization ───────────────────────────────────────────────────
@@ -694,6 +705,7 @@
     })
     .then(text => {
       const data = parseCSV(text);
+      buildColorMap(data);
       const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
       let currentYear = classes[0];
