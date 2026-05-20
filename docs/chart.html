@@ -49,6 +49,92 @@
       text-transform: uppercase;
     }
 
+    /* ── Info button ── */
+    .info-btn {
+      display: inline-block;
+      margin-top: 14px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .info-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      overflow-y: auto;
+      padding: 40px 24px;
+    }
+
+    .modal-overlay.open { display: block; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 48px 52px;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 20px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 1.4rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 2px;
+      transition: color 0.15s;
+    }
+
+    .modal-close:hover { color: var(--text); }
+
+    .modal h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.8rem;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+
+    .modal-body {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.9;
+      letter-spacing: 0.02em;
+    }
+
+    .modal-body p { margin-bottom: 16px; }
+    .modal-body p:last-child { margin-bottom: 0; }
+
+    .modal-body strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* ── Card ── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -93,11 +179,7 @@
       color: var(--text);
     }
 
-    .toggle-divider {
-      width: 1px;
-      height: 20px;
-      background: var(--border);
-    }
+    .toggle-divider { width: 1px; height: 20px; background: var(--border); }
 
     /* ── Slider ── */
     .slider-section { margin-bottom: 36px; }
@@ -163,8 +245,7 @@
     input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
     input[type="range"]::-moz-range-thumb {
-      width: 18px;
-      height: 18px;
+      width: 18px; height: 18px;
       border-radius: 50%;
       background: var(--accent);
       border: 3px solid var(--bg);
@@ -174,18 +255,17 @@
     /* ── Chart ── */
     .chart-area { display: flex; gap: 36px; align-items: flex-start; }
 
-    /* Extra top padding gives tooltips room above the chart without overlapping the center label */
     .chart-wrap { flex: 0 0 300px; position: relative; padding-top: 32px; }
     .chart-wrap canvas { display: block; }
 
     .chart-center-label {
       position: absolute;
-      /* offset by the padding-top so it still centers on the canvas */
       top: calc(50% + 16px);
       left: 50%;
       transform: translate(-50%, -50%);
       text-align: center;
       pointer-events: none;
+      transition: opacity 0.15s;
     }
 
     .chart-center-label .n {
@@ -204,7 +284,6 @@
     }
 
     .chart-center-label.hidden { opacity: 0; transition: opacity 0.1s; }
-    .chart-center-label { transition: opacity 0.15s; }
 
     /* ── Legend ── */
     .legend { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
@@ -248,29 +327,49 @@
       .chart-wrap { flex: none; width: 100%; max-width: 280px; margin: 0 auto; }
       .card { padding: 24px 20px; }
       .toggle-btn { font-size: 0.62rem; padding: 6px 10px; }
+      .modal { padding: 36px 24px 40px; }
     }
   </style>
 </head>
 <body>
 
-<header>
-  <h1>Where do Nueva alumni end up after graduation?></h1>
-  <p>Sector breakdown by graduating class</p>
+<!-- ── Modal ── -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose" aria-label="Close">&#x2715;</button>
+    <h2>How did we collect this data?</h2>
+    <div class="modal-body">
+       
 
+      <p>The Nueva Upper School has graduated 416 students between 2017 (its first graduating class)  and 2021. In this project, we gathered data on the chosen career paths of 320 of those alumni using a combination of LinkedIn and email correspondence. </p>
+
+      <p><strong>For those who are employed (excluding university programs)...</strong> To determine each alumnus' sector of employment, we recorded 1&rpar; the sector of their employer/organization, and 2&rpar; the sector of their own job/role within that organization. This was to capture cases where someone's work differs from their company's industry—for example, a finance employee who works at a tech company. </p>
+
+      <p><strong>For those engaged in postgraduate studies…</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing “Research - XXX” under the “Academia” employment sector. MD candidates were counted as being personally engaged under “Health,” with the employment sector left blank. JD candidates were similarly counted as engaged under “Law,” with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
+
+      <p>Throughout this project, we emphasized full-time, extended employment. We did not count positions held during undergrad, summer internships, or employment spanning &lt;4 months.  Additionally we did not count individuals still pursuing their 4-yr degree, who are unemployed, or whose information is unavailable or out-of-date on Linkedin.</p>
+
+
+    </div>
+  </div>
+</div>
+
+<header>
+  <h1>Where do Nueva alumni end up after graduation?</h1>
+  <p>Sector breakdown by graduating class</p>
+  <button class="info-btn" id="infoBtn">How did we collect this data?</button>
 </header>
 
 <div class="card">
   <div id="loading">Loading data...</div>
   <div id="app" style="display:none">
 
-    <!-- Column toggle -->
     <div class="toggle-row">
       <button class="toggle-btn active" id="btnComp">Company / Org Sector</button>
       <div class="toggle-divider"></div>
       <button class="toggle-btn" id="btnJob">Job Position Sector</button>
     </div>
 
-    <!-- Year slider -->
     <div class="slider-section">
       <div class="slider-label">
         <span>Graduating Class</span>
@@ -280,7 +379,6 @@
       <input type="range" id="classSlider" min="0" step="1" value="0">
     </div>
 
-    <!-- Chart + legend -->
     <div class="chart-area">
       <div class="chart-wrap">
         <canvas id="pieChart" width="300" height="300"></canvas>
@@ -298,30 +396,42 @@
 </div>
 
 <script>
-  // Colors are arranged so that every adjacent pair in the list is visually
-  // distant (alternating warm/cool, different hue families). This prevents
-  // the first and last slice from being too similar when the chart wraps.
-  const COLORS = [
-    '#c8a96e', // warm gold
-    '#6e9ec8', // steel blue
-    '#c86e8a', // rose
-    '#6ec8a4', // teal green
-    '#b46ec8', // purple
-    '#c8c86e', // yellow-lime
-    '#6e7ec8', // indigo
-    '#c8956e', // burnt orange
-    '#6ec8c8', // cyan
-    '#c86e6e', // red
-    '#8ac86e', // lime green
-    '#c86eb4', // magenta
-    '#6eb4c8', // sky blue
-    '#c8b46e', // sand
-    '#6e8ac8', // periwinkle
-    '#9ec86e', // yellow-green
-    '#c86e95', // pink-red
-    '#6ec895', // seafoam
-  ];
+  
+  const modalOverlay = document.getElementById('modalOverlay');
+  document.getElementById('infoBtn').addEventListener('click', () => {
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  });
+  function closeModal() {
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
 
+  
+  function assignColors(sorted) {
+    const seq = [
+      '#6e9ec8', '#c86e8a', '#6ec8a4', '#c8a96e', '#b46ec8',
+      '#8ac86e', '#c86e6e', '#6ec8c8', '#c8956e', '#6e7ec8',
+      '#c8c86e', '#c86eb4', '#6eb4c8', '#c86e95', '#6ec895',
+      '#c8b46e', '#6e8ac8', '#9ec86e',
+    ];
+    const n = sorted.length;
+    const colors = sorted.map((_, i) => seq[i % seq.length]);
+    const lastIdx = (n - 1) % seq.length;
+    if (lastIdx === 0 || seq[lastIdx].startsWith('#6e')) {
+      colors[n - 1] = '#c8a96e';
+    }
+    return colors;
+  }
+
+  
   function parseCSV(text) {
     const lines = text.trim().split('\n');
     lines.shift();
@@ -352,37 +462,6 @@
     return { sorted, total };
   }
 
-  function assignColors(sorted) {
-    const seq = [
-      '#6e9ec8', // steel blue
-      '#c86e8a', // rose
-      '#6ec8a4', // teal green
-      '#c8a96e', // warm gold
-      '#b46ec8', // purple
-      '#8ac86e', // lime green
-      '#c86e6e', // red
-      '#6ec8c8', // cyan
-      '#c8956e', // burnt orange
-      '#6e7ec8', // indigo
-      '#c8c86e', // yellow-lime
-      '#c86eb4', // magenta
-      '#6eb4c8', // sky blue
-      '#c86e95', // pink-red
-      '#6ec895', // seafoam
-      '#c8b46e', // sand
-      '#6e8ac8', // periwinkle
-      '#9ec86e', // yellow-green
-    ];
-    const n = sorted.length;
-    const colors = sorted.map((_, i) => seq[i % seq.length]);
-    // If the last slice wraps around to a color too similar to the first,
-    // replace it with a guaranteed warm color that won't clash with seq[0] (blue)
-    const lastIdx = (n - 1) % seq.length;
-    if (lastIdx === 0 || seq[lastIdx].startsWith('#6e')) {
-      colors[n - 1] = '#c8a96e'; // warm gold — always contrasts with blue
-    }
-    return colors;
-  }
 
   let chart;
 
@@ -404,13 +483,11 @@
       chart.update();
     } else {
       const centerLabel = document.getElementById('centerLabel');
-
       const hideOnOverlapPlugin = {
         id: 'hideOnOverlap',
         afterDraw(chartInstance) {
           const tooltip = chartInstance.tooltip;
-          const visible = tooltip && tooltip.opacity > 0;
-          centerLabel.classList.toggle('hidden', visible);
+          centerLabel.classList.toggle('hidden', tooltip && tooltip.opacity > 0);
         }
       };
 
@@ -432,10 +509,6 @@
         options: {
           cutout: '62%',
           animation: { animateRotate: true, duration: 500 },
-          layout: {
-            // Push chart down so tooltips that appear above have room
-            padding: { top: 0, bottom: 0, left: 0, right: 0 }
-          },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -460,7 +533,6 @@
       });
     }
 
-    // Rebuild legend — colors match chart order
     const legend = document.getElementById('legend');
     legend.innerHTML = '';
     sorted.forEach(([sector, count], i) => {
