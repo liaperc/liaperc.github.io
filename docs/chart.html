@@ -481,6 +481,25 @@
     return colors;
   }
 
+  // ── Label normalization ───────────────────────────────────────────────────
+  const LABEL_MAP = {
+    comp: {
+      'Research': 'Independent research institutions',
+      'Philanthropy/Welfare/Nonprofit': 'Philanthropy/Public Charity',
+      'Philanthropy/Social Good/Nonprofit': 'Philanthropy/Public Charity',
+      'Business Consulting/Strategy': 'Business Consulting',
+      'Marketing/Public Relations': 'Marketing/Communications',
+    },
+    job: {
+      'Marketing/Public Relations': 'Marketing/Communications',
+      'Business Consulting/Strategy': 'Business Consulting',
+    },
+  };
+
+  function normalizeLabel(field, label) {
+    return (LABEL_MAP[field] && LABEL_MAP[field][label]) || label;
+  }
+
   // ── CSV parsing ───────────────────────────────────────────────────────────
   function parseCSV(text) {
     const lines = text.trim().split('\n');
@@ -506,7 +525,10 @@
     const counts = {};
     data
       .filter(d => d.year === year && d[field])
-      .forEach(d => { counts[d[field]] = (counts[d[field]] || 0) + 1; });
+      .forEach(d => {
+        const label = normalizeLabel(field, d[field]);
+        counts[label] = (counts[label] || 0) + 1;
+      });
     const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     const total = sorted.reduce((s, [, v]) => s + v, 0);
     return { sorted, total };
@@ -609,17 +631,16 @@
     'Academia': 'University employers that pay out stipends. Many individuals under this category are either pursuing a PhD or post-doc research.',
     'Engineering': 'Companies that specialize in industrial manufacturing, electrical, medical, and/or consumer engineering. Examples include NVIDIA, Blackrock Neurotech, and Medtronic.',
     'Education': 'Schools and/or educational programs. Examples include Crystal Springs Uplands School, Amplify, Youth Mentoring Partnership, and Planetary Dharma.',
-    'Philanthropy/Welfare/Nonprofit': 'Organizations that directly conduct charity, provide monetary support to charitable activities, and/or conduct research with the goal of advancing the public good. Examples include Nova Vista Foundation, The World Bank, and Recidiviz.',
-    'Philanthropy/Social Good/Nonprofit': 'Organizations that directly conduct charity, provide monetary support to charitable activities, and/or conduct research with the goal of advancing the public good. Examples include Nova Vista Foundation, The World Bank, and Recidiviz.',
-    'Business Consulting/Strategy': 'Organizations that provide strategic, operational, and management advice to other businesses. Examples include Bain & Company and Gallagher & Co.',
+    'Philanthropy/Public Charity': 'Organizations that directly conduct charity, provide monetary support to charitable activities, and/or conduct research with the goal of advancing the public good. Examples include Nova Vista Foundation, The World Bank, and Recidiviz.',
+    'Business Consulting': 'Organizations that provide strategic, operational, and management advice to other businesses. Examples include Bain & Company and Gallagher & Co.',
     'Arts/Media': 'Organizations centered around the visual, decorative, performing, and musical arts. Examples include Kreativ Media Partners, Abbode, and independent art studios.',
     'Entertainment': 'Organizations and agencies that produce and/or distribute audience entertainment. Examples include Sony Music Entertainment, Oregon Shakespeare Festival, and Maddiedanceparty LLC.',
     'Biotechnology/Pharmaceuticals': 'Private companies that conduct biological research to develop health-promoting products. Examples include Vertex Pharmaceuticals, Proxima, and Greenstone Biosciences.',
     'Politics/Government': 'Employers from federal and local governments, as well as political campaigns. Examples include California State Assembly, NYC Office of Management and Budget, and Jon Ossoff for Senate.',
     'Health': 'Hospitals and institutions involved in improving the accessibility of health services. Examples include UCSF, NCQA, and Fortuna Health. (Individuals currently pursuing medical school are not counted under this category.)',
-    'Research': 'Research institutions that operate outside of universities. Examples include Aneresco Laboratories, Eastern Research Group, Inc., and Council on Foreign Relations. (Organizations working on for-profit biological research are counted under "Biotechnology/Pharmaceuticals.")',
+    'Independent research institutions': 'Research institutions that operate outside of universities. Examples include Aneresco Laboratories, Eastern Research Group, Inc., and Council on Foreign Relations. (Organizations working on for-profit biological research are counted under "Biotechnology/Pharmaceuticals.")',
     'Law': 'Any organization that performs legal services or consulting. Examples include Alma, Rudy Exelrod Zieff & Lowe, and McDermott Will & Schulte. (Individuals currently pursuing law school are not counted under this category.)',
-    'Marketing/Public Relations': 'Organizations that outsource advertising and brand promotion services to other businesses. Examples include Day One Agency, NoGood, and TubeScience.',
+    'Marketing/Communications': 'Organizations that outsource advertising and brand promotion services to other businesses. Examples include Day One Agency, NoGood, and TubeScience.',
     'Other': 'Employers that do not fit neatly into any of the other defined sectors.',
   };
 
