@@ -304,6 +304,41 @@
     .legend-pct { font-size: 0.7rem; color: var(--accent); font-weight: 500; min-width: 36px; text-align: right; }
     .legend-count { font-size: 0.65rem; color: var(--muted); min-width: 30px; text-align: right; }
 
+    .legend-item { cursor: pointer; }
+    .legend-name { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; text-decoration-color: var(--border); }
+    .legend-item:hover .legend-name { text-decoration-color: var(--accent); }
+
+    /* ── Sector popup ── */
+    .sector-popup {
+      position: fixed;
+      z-index: 200;
+      max-width: 300px;
+      background: #1e2128;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    .sector-popup.visible { opacity: 1; }
+
+    .sector-popup-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 0.95rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .sector-popup-body {
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.7;
+      letter-spacing: 0.02em;
+    }
+
     .divider { width: 100%; height: 1px; background: var(--border); margin: 28px 0 0; }
 
     .footer-note {
@@ -339,17 +374,15 @@
     <button class="modal-close" id="modalClose" aria-label="Close">&#x2715;</button>
     <h2>How did we collect this data?</h2>
     <div class="modal-body">
-       
 
-      <p>The Nueva Upper School has graduated 416 students between 2017 (its first graduating class)  and 2021. In this project, we gathered data on the chosen career paths of 320 of those alumni using a combination of LinkedIn and email correspondence. </p>
+        <p>The Nueva Upper School has graduated 416 students between 2017 (its first graduating class)  and 2021. In this project, we gathered data on the chosen career paths of 320 of those alumni using a combination of LinkedIn and email correspondence. </p>
 
-      <p><strong>For those who are employed (excluding university programs)...</strong> To determine each alumnus' sector of employment, we recorded 1&rpar; the sector of their employer/organization, and 2&rpar; the sector of their own job/role within that organization. This was to capture cases where someone's work differs from their company's industry—for example, a finance employee who works at a tech company. </p>
-
-      <p><strong>For those engaged in postgraduate studies…</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing “Research - XXX” under the “Academia” employment sector. MD candidates were counted as being personally engaged under “Health,” with the employment sector left blank. JD candidates were similarly counted as engaged under “Law,” with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
-
-      <p>Throughout this project, we emphasized full-time, extended employment. We did not count positions held during undergrad, summer internships, or employment spanning &lt;4 months.  Additionally we did not count individuals still pursuing their 4-yr degree, who are unemployed, or whose information is unavailable or out-of-date on Linkedin.</p>
-
-
+        <p><strong>For those who are employed (excluding university programs)...</strong> To determine each alumnus' sector of employment, we recorded 1&rpar; the sector of their employer/organization, and 2&rpar; the sector of their own job/role within that organization. This was to capture cases where someone's work differs from their company's industry—for example, a finance employee who works at a tech company. </p>
+        
+        <p><strong>For those engaged in postgraduate studies…</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing “Research - XXX” under the “Academia” employment sector. MD candidates were counted as being personally engaged under “Health,” with the employment sector left blank. JD candidates were similarly counted as engaged under “Law,” with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
+        
+        <p>Throughout this project, we emphasized full-time, extended employment. We did not count positions held during undergrad, summer internships, or employment spanning &lt;4 months.  Additionally we did not count individuals still pursuing their 4-yr degree, who are unemployed, or whose information is unavailable or out-of-date on Linkedin.</p>
+        
     </div>
   </div>
 </div>
@@ -396,7 +429,7 @@
 </div>
 
 <script>
-  
+  // ── Modal ─────────────────────────────────────────────────────────────────
   const modalOverlay = document.getElementById('modalOverlay');
   document.getElementById('infoBtn').addEventListener('click', () => {
     modalOverlay.classList.add('open');
@@ -414,7 +447,7 @@
     if (e.key === 'Escape') closeModal();
   });
 
-  
+  // ── Colors ────────────────────────────────────────────────────────────────
   function assignColors(sorted) {
     const seq = [
       '#6e9ec8', '#c86e8a', '#6ec8a4', '#c8a96e', '#b46ec8',
@@ -431,7 +464,7 @@
     return colors;
   }
 
-  
+  // ── CSV parsing ───────────────────────────────────────────────────────────
   function parseCSV(text) {
     const lines = text.trim().split('\n');
     lines.shift();
@@ -462,7 +495,7 @@
     return { sorted, total };
   }
 
-
+  // ── Chart ─────────────────────────────────────────────────────────────────
   let chart;
 
   function buildChart(data, year, field) {
@@ -545,10 +578,79 @@
         <span class="legend-pct">${pct}%</span>
         <span class="legend-count">${count}</span>
       `;
+      item.addEventListener('mouseenter', () => showPopup(sector, item));
+      item.addEventListener('mouseleave', hidePopup);
+      item.addEventListener('click', () => showPopup(sector, item));
       legend.appendChild(item);
     });
   }
 
+  // ── Sector definitions ────────────────────────────────────────────────────
+  const SECTOR_INFO = {
+    'Tech/Software': 'Companies that build software applications, operating systems, and programs. Examples include Apple, Polymarket, and Epic.',
+    'Finance': 'Banks, proprietary trading firms, and loan-making organizations. Examples include Capital One, Jane Street, and Citadel Global Equities.',
+    'Academia': 'University employers that pay out stipends. Many individuals under this category are either pursuing a PhD or post-doc research.',
+    'Engineering': 'Companies that specialize in industrial manufacturing, electrical, medical, and/or consumer engineering. Examples include NVIDIA, Blackrock Neurotech, and Medtronic.',
+    'Education': 'Schools and/or educational programs. Examples include Crystal Springs Uplands School, Amplify, Youth Mentoring Partnership, and Planetary Dharma.',
+    'Philanthropy/Welfare/Nonprofit': 'Organizations that directly conduct charity, provide monetary support to charitable activities, and/or conduct research with the goal of advancing the public good. Examples include Nova Vista Foundation, The World Bank, and Recidiviz.',
+    'Philanthropy/Social Good/Nonprofit': 'Organizations that directly conduct charity, provide monetary support to charitable activities, and/or conduct research with the goal of advancing the public good. Examples include Nova Vista Foundation, The World Bank, and Recidiviz.',
+    'Business Consulting/Strategy': 'Organizations that provide strategic, operational, and management advice to other businesses. Examples include Bain & Company and Gallagher & Co.',
+    'Arts/Media': 'Organizations centered around the visual, decorative, performing, and musical arts. Examples include Kreativ Media Partners, Abbode, and independent art studios.',
+    'Entertainment': 'Organizations and agencies that produce and/or distribute audience entertainment. Examples include Sony Music Entertainment, Oregon Shakespeare Festival, and Maddiedanceparty LLC.',
+    'Biotechnology/Pharmaceuticals': 'Private companies that conduct biological research to develop health-promoting products. Examples include Vertex Pharmaceuticals, Proxima, and Greenstone Biosciences.',
+    'Politics/Government': 'Employers from federal and local governments, as well as political campaigns. Examples include California State Assembly, NYC Office of Management and Budget, and Jon Ossoff for Senate.',
+    'Health': 'Hospitals and institutions involved in improving the accessibility of health services. Examples include UCSF, NCQA, and Fortuna Health. (Individuals currently pursuing medical school are not counted under this category.)',
+    'Research': 'Research institutions that operate outside of universities. Examples include Aneresco Laboratories, Eastern Research Group, Inc., and Council on Foreign Relations. (Organizations working on for-profit biological research are counted under "Biotechnology/Pharmaceuticals.")',
+    'Law': 'Any organization that performs legal services or consulting. Examples include Alma, Rudy Exelrod Zieff & Lowe, and McDermott Will & Schulte. (Individuals currently pursuing law school are not counted under this category.)',
+    'Marketing/Public Relations': 'Organizations that outsource advertising and brand promotion services to other businesses. Examples include Day One Agency, NoGood, and TubeScience.',
+    'Other': 'Employers that do not fit neatly into any of the other defined sectors.',
+  };
+
+  // ── Sector popup ──────────────────────────────────────────────────────────
+  const popup = document.createElement('div');
+  popup.className = 'sector-popup';
+  popup.innerHTML = '<div class="sector-popup-title" id="popupTitle"></div><div class="sector-popup-body" id="popupBody"></div>';
+  document.body.appendChild(popup);
+
+  let popupTimeout;
+
+  function showPopup(sector, anchorEl) {
+    const info = SECTOR_INFO[sector];
+    if (!info) return;
+    document.getElementById('popupTitle').textContent = sector;
+    document.getElementById('popupBody').textContent = info;
+
+    // Position: to the left of the legend item, or above if no room
+    const rect = anchorEl.getBoundingClientRect();
+    popup.style.opacity = '0';
+    popup.style.display = 'block';
+    const pw = popup.offsetWidth;
+    const ph = popup.offsetHeight;
+
+    let left = rect.left - pw - 12;
+    let top = rect.top + rect.height / 2 - ph / 2;
+
+    // If it would go off the left edge, show above instead
+    if (left < 8) {
+      left = Math.max(8, rect.left);
+      top = rect.top - ph - 8;
+    }
+
+    // Clamp vertically
+    top = Math.max(8, Math.min(top, window.innerHeight - ph - 8));
+
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+    popup.classList.add('visible');
+
+    clearTimeout(popupTimeout);
+  }
+
+  function hidePopup() {
+    popupTimeout = setTimeout(() => popup.classList.remove('visible'), 120);
+  }
+
+  // ── Load data ─────────────────────────────────────────────────────────────
   fetch('alumniCompSectorandJobSector.csv')
     .then(res => {
       if (!res.ok) throw new Error('Could not load CSV');
