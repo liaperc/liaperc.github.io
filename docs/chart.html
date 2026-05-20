@@ -311,7 +311,7 @@
     /* ── Sector popup ── */
     .sector-popup {
       position: fixed;
-      z-index: 200;
+      z-index: 9999;
       max-width: 300px;
       background: #1e2128;
       border: 1px solid var(--border);
@@ -382,7 +382,7 @@
         <p><strong>For those engaged in postgraduate studies…</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing “Research - XXX” under the “Academia” employment sector. MD candidates were counted as being personally engaged under “Health,” with the employment sector left blank. JD candidates were similarly counted as engaged under “Law,” with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
         
         <p>Throughout this project, we emphasized full-time, extended employment. We did not count positions held during undergrad, summer internships, or employment spanning &lt;4 months.  Additionally we did not count individuals still pursuing their 4-yr degree, who are unemployed, or whose information is unavailable or out-of-date on Linkedin.</p>
-        
+
     </div>
   </div>
 </div>
@@ -607,10 +607,7 @@
   };
 
   // ── Sector popup ──────────────────────────────────────────────────────────
-  const popup = document.createElement('div');
-  popup.className = 'sector-popup';
-  popup.innerHTML = '<div class="sector-popup-title" id="popupTitle"></div><div class="sector-popup-body" id="popupBody"></div>';
-  document.body.appendChild(popup);
+  const popup = document.getElementById('sectorPopup');
 
   let popupTimeout;
 
@@ -620,12 +617,14 @@
     document.getElementById('popupTitle').textContent = sector;
     document.getElementById('popupBody').textContent = info;
 
-    // Position: to the left of the legend item, or above if no room
-    const rect = anchorEl.getBoundingClientRect();
-    popup.style.opacity = '0';
-    popup.style.display = 'block';
+    // Temporarily show off-screen to measure dimensions
+    popup.style.left = '-9999px';
+    popup.style.top = '-9999px';
+    popup.classList.add('visible');
+
     const pw = popup.offsetWidth;
     const ph = popup.offsetHeight;
+    const rect = anchorEl.getBoundingClientRect();
 
     let left = rect.left - pw - 12;
     let top = rect.top + rect.height / 2 - ph / 2;
@@ -641,7 +640,6 @@
 
     popup.style.left = left + 'px';
     popup.style.top = top + 'px';
-    popup.classList.add('visible');
 
     clearTimeout(popupTimeout);
   }
@@ -704,5 +702,11 @@
       document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
     });
 </script>
+<!-- ── Sector popup ── -->
+<div class="sector-popup" id="sectorPopup">
+  <div class="sector-popup-title" id="popupTitle"></div>
+  <div class="sector-popup-body" id="popupBody"></div>
+</div>
+
 </body>
 </html>
