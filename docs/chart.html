@@ -379,7 +379,7 @@
 
         <p><strong>For those who are employed (excluding university programs)...</strong> To determine each alumnus' sector of employment, we recorded 1&rpar; the sector of their employer/organization, and 2&rpar; the sector of their own job/role within that organization. This was to capture cases where someone's work differs from their company's industry—for example, a finance employee who works at a tech company. </p>
         
-        <p><strong>For those engaged in postgraduate studies...</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing “Research - XXX” under the “Academia” employment sector. MD candidates were counted as being personally engaged under “Health,” with the employment sector left blank. JD candidates were similarly counted as engaged under “Law,” with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
+        <p><strong>For those engaged in postgraduate studies...</strong> Because they receive academic stipends, individuals enrolled in a PhD program were counted as doing "Research - XXX" under the "Academia" employment sector. MD candidates were counted as being personally engaged under "Health," with the employment sector left blank. JD candidates were similarly counted as engaged under "Law," with the employment sector left blank. Masters students were not defined as being as professionally engaged in anything.</p>
         
         <p>Throughout this project, we emphasized full-time, extended employment. We did not count positions held during undergrad, summer internships, or employment spanning &lt;4 months.  Additionally we did not count individuals still pursuing their 4-yr degree, who are unemployed, or whose information is unavailable or out-of-date on Linkedin.</p>
 
@@ -461,32 +461,31 @@
   });
 
   // ── Colors ────────────────────────────────────────────────────────────────
-  // One unique color per sector, hand-assigned for maximum distinctiveness.
   const SECTOR_COLORS = {
-    'Academia':                                                    '#c86e8a', // rose
-    'Arts/Media':                                                  '#c8a96e', // gold
-    'Biotechnology/Pharmaceuticals':                               '#6ec8a4', // teal
-    'Business Consulting':                                         '#b46ec8', // purple
-    'Education':                                                   '#6eb4c8', // sky blue
-    'Engineering':                                                 '#8ac86e', // lime green
-    'Entertainment':                                               '#c86e6e', // red
-    'Finance':                                                     '#6e7ec8', // indigo
-    'Health':                                                      '#c86eb4', // magenta
-    'Independent research institutions':                           '#6ec895', // seafoam
-    'Internal Communications/Management/Administration':           '#c8956e', // burnt orange
-    'Journalism':                                                  '#9ec86e', // yellow-green
-    'Law':                                                         '#c8c86e', // yellow-lime
-    'Marketing/Communications':                                    '#6e9ec8', // steel blue
-    'Other':                                                       '#a0a0a0', // grey
-    'Philanthropy/Public Charity':                                 '#6ec8c8', // cyan
-    'Politics/Government':                                         '#c86e95', // pink-red
-    'Product & Strategy (non-technical)':                         '#c8b46e', // sand
-    'Research - Engineering, Computational, Mathmatical, Physical Sciences': '#E85454', // red
-    'Research - Interdisciplinary':                                '#6e8ac8', // periwinkle
-    'Research - Life Sciences':                                    '#c87e6e', // salmon
-    'Research - Social Sciences & Humanities':                     '#ae6ec8', // violet
-    'Tech/Software':                                               '#6ec8b4', // mint
-    'UI/UX/Product Design/CAD':                                    '#c8ae6e', // tan
+    'Academia':                                                    '#c86e8a',
+    'Arts/Media':                                                  '#c8a96e',
+    'Biotechnology/Pharmaceuticals':                               '#6ec8a4',
+    'Business Consulting':                                         '#b46ec8',
+    'Education':                                                   '#6eb4c8',
+    'Engineering':                                                 '#8ac86e',
+    'Entertainment':                                               '#c86e6e',
+    'Finance':                                                     '#6e7ec8',
+    'Health':                                                      '#c86eb4',
+    'Independent research institutions':                           '#6ec895',
+    'Internal Communications/Management/Administration':           '#c8956e',
+    'Journalism':                                                  '#9ec86e',
+    'Law':                                                         '#c8c86e',
+    'Marketing/Communications':                                    '#6e9ec8',
+    'Other':                                                       '#a0a0a0',
+    'Philanthropy/Public Charity':                                 '#6ec8c8',
+    'Politics/Government':                                         '#c86e95',
+    'Product & Strategy (non-technical)':                          '#c8b46e',
+    'Research - Engineering, Computational, Mathmatical, Physical Sciences': '#E85454',
+    'Research - Interdisciplinary':                                '#6e8ac8',
+    'Research - Life Sciences':                                    '#c87e6e',
+    'Research - Social Sciences & Humanities':                     '#ae6ec8',
+    'Tech/Software':                                               '#6ec8b4',
+    'UI/UX/Product Design/CAD':                                    '#c8ae6e',
   };
 
   let sectorColorMap = {};
@@ -546,10 +545,11 @@
     }).filter(d => !isNaN(d.year));
   }
 
+  // null year = aggregate all years
   function processYear(data, year, field) {
     const counts = {};
     data
-      .filter(d => d.year === year && d[field])
+      .filter(d => (year === null || d.year === year) && d[field])
       .forEach(d => {
         const label = normalizeLabel(field, d[field]);
         counts[label] = (counts[label] || 0) + 1;
@@ -671,7 +671,6 @@
 
   // ── Sector popup ──────────────────────────────────────────────────────────
   const popup = document.getElementById('sectorPopup');
-
   let popupTimeout;
 
   function showPopup(sector, anchorEl) {
@@ -680,7 +679,6 @@
     document.getElementById('popupTitle').textContent = sector;
     document.getElementById('popupBody').textContent = info;
 
-    // Temporarily show off-screen to measure dimensions
     popup.style.left = '-9999px';
     popup.style.top = '-9999px';
     popup.classList.add('visible');
@@ -692,18 +690,15 @@
     let left = rect.left - pw - 12;
     let top = rect.top + rect.height / 2 - ph / 2;
 
-    // If it would go off the left edge, show above instead
     if (left < 8) {
       left = Math.max(8, rect.left);
       top = rect.top - ph - 8;
     }
 
-    // Clamp vertically
     top = Math.max(8, Math.min(top, window.innerHeight - ph - 8));
 
     popup.style.left = left + 'px';
     popup.style.top = top + 'px';
-
     clearTimeout(popupTimeout);
   }
 
@@ -722,27 +717,36 @@
       buildColorMap(data);
       const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
-      let currentYear = classes[0];
+      // null = All Years, otherwise a specific year
+      let currentYear = null;
       let currentField = 'job';
 
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
       const slider = document.getElementById('classSlider');
-      slider.max = classes.length - 1;
+      slider.max = classes.length; // index 0 = All, 1..n = each year
 
+      // Build year ticks: "All" first, then each year
       const yearTicks = document.getElementById('yearTicks');
+
+      const allSpan = document.createElement('span');
+      allSpan.textContent = 'All';
+      allSpan.classList.add('active');
+      allSpan.addEventListener('click', () => { slider.value = 0; updateYear(0); });
+      yearTicks.appendChild(allSpan);
+
       classes.forEach((y, i) => {
         const span = document.createElement('span');
         span.textContent = y;
-        if (i === 0) span.classList.add('active');
-        span.addEventListener('click', () => { slider.value = i; updateYear(i); });
+        span.addEventListener('click', () => { slider.value = i + 1; updateYear(i + 1); });
         yearTicks.appendChild(span);
       });
 
       function updateYear(idx) {
-        currentYear = classes[idx];
-        document.getElementById('yearDisplay').textContent = currentYear;
+        // idx 0 = All Years (null), idx 1+ = classes[idx-1]
+        currentYear = idx === 0 ? null : classes[idx - 1];
+        document.getElementById('yearDisplay').textContent = idx === 0 ? 'All' : currentYear;
         document.querySelectorAll('.year-ticks span').forEach((s, i) => {
           s.classList.toggle('active', i === idx);
         });
@@ -761,7 +765,7 @@
       document.getElementById('btnComp').addEventListener('click', () => updateField('comp'));
       document.getElementById('btnJob').addEventListener('click', () => updateField('job'));
 
-      updateYear(0);
+      updateYear(0); // start on All Years
     })
     .catch(err => {
       document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
