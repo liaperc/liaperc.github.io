@@ -147,9 +147,17 @@
     /* ── Column toggle ── */
     .toggle-row {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: center;
       gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .toggle-row-bottom {
+      display: flex;
+      justify-content: center;
+      margin-top: -18px;
       margin-bottom: 32px;
     }
 
@@ -401,7 +409,8 @@
       <button class="toggle-btn active" id="btnJob">By job position &amp; professional engagement</button>
       <div class="toggle-divider"></div>
       <button class="toggle-btn" id="btnComp">By company/organization sector</button>
-      <div class="toggle-divider"></div>
+    </div>
+    <div class="toggle-row-bottom">
       <button class="toggle-btn" id="btnGrad">Graduate school attendance</button>
     </div>
 
