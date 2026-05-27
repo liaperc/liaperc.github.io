@@ -561,6 +561,7 @@
 
   // ── Chart ─────────────────────────────────────────────────────────────────
   let chart;
+  let currentTotal = 0; // updated every buildChart call so tooltip always has the right total
 
   function buildChart(data, year, field) {
     const { sorted, total } = processYear(data, year, field);
@@ -569,6 +570,7 @@
     const colors = assignColors(sorted);
 
     document.getElementById('centerN').textContent = total;
+    currentTotal = total;
 
     if (chart) {
       chart.setActiveElements([]);
@@ -612,7 +614,7 @@
               position: 'nearest',
               callbacks: {
                 label: (ctx) => {
-                  const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                  const pct = ((ctx.parsed / currentTotal) * 100).toFixed(1);
                   return `  ${ctx.label}: ${pct}% (${ctx.parsed})`;
                 }
               },
