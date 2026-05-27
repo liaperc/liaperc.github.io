@@ -401,6 +401,8 @@
       <button class="toggle-btn active" id="btnJob">By job position &amp; professional engagement</button>
       <div class="toggle-divider"></div>
       <button class="toggle-btn" id="btnComp">By company/organization sector</button>
+      <div class="toggle-divider"></div>
+      <button class="toggle-btn" id="btnGrad">Graduate school attendance</button>
     </div>
 
     <div id="compNote" style="display:none; text-align:center; margin: -18px 0 24px;">
@@ -708,28 +710,137 @@
     popupTimeout = setTimeout(() => popup.classList.remove('visible'), 120);
   }
 
+  // ── Grad school data ──────────────────────────────────────────────────────
+  function parseGradCSV(text) {
+    const lines = text.trim().split('\n');
+    lines.shift();
+    return lines.map(line => {
+      const comma = line.indexOf(',');
+      const year = parseInt(line.slice(0, comma).trim());
+      const val = line.slice(comma + 1).trim();
+      return { year, val };
+    }).filter(d => !isNaN(d.year) && d.val === 'Yes' || !isNaN(d.year) && d.val === 'No');
+  }
+
+  function processGradYear(gradData, year) {
+    const filtered = gradData.filter(d => year === null || d.year === year);
+    const yes = filtered.filter(d => d.val === 'Yes').length;
+    const no  = filtered.filter(d => d.val === 'No').length;
+    const total = yes + no;
+    const sorted = [['Yes', yes], ['No', no]].filter(([, v]) => v > 0);
+    return { sorted, total };
+  }
+
+  function buildGradChart(gradData, year) {
+    const { sorted, total } = processGradYear(gradData, year);
+    const labels = sorted.map(([s]) => s);
+    const values = sorted.map(([, v]) => v);
+    const colors = ['#6ec8a4', '#c86e6e']; // teal = Yes, red = No
+
+    document.getElementById('centerN').textContent = total;
+    currentTotal = total;
+
+    if (chart) {
+      chart.setActiveElements([]);
+      chart.tooltip.setActiveElements([]);
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[0].backgroundColor = colors;
+      chart.data.datasets[0].borderColor = '#161920';
+      chart.update();
+    } else {
+      const centerLabel = document.getElementById('centerLabel');
+      const hideOnOverlapPlugin = {
+        id: 'hideOnOverlap',
+        afterDraw(chartInstance) {
+          const tooltip = chartInstance.tooltip;
+          centerLabel.classList.toggle('hidden', tooltip && tooltip.opacity > 0);
+        }
+      };
+      const ctx = document.getElementById('pieChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'doughnut',
+        plugins: [hideOnOverlapPlugin],
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: '#161920',
+            borderWidth: 2,
+            hoverBorderWidth: 3,
+            hoverOffset: 0,
+          }]
+        },
+        options: {
+          cutout: '62%',
+          animation: { animateRotate: true, duration: 500 },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              position: 'nearest',
+              callbacks: {
+                label: (ctx) => {
+                  const pct = ((ctx.parsed / currentTotal) * 100).toFixed(1);
+                  return `  ${ctx.label}: ${pct}% (${ctx.parsed})`;
+                }
+              },
+              backgroundColor: '#1e2128',
+              borderColor: '#2e3240',
+              borderWidth: 1,
+              titleColor: '#c8a96e',
+              bodyColor: '#e8e6df',
+              padding: 12,
+              titleFont: { family: "'DM Serif Display', serif", size: 13 },
+              bodyFont: { family: "'DM Mono', monospace", size: 11 },
+            }
+          }
+        }
+      });
+    }
+
+    const legend = document.getElementById('legend');
+    legend.innerHTML = '';
+    sorted.forEach(([label, count], i) => {
+      const pct = ((count / total) * 100).toFixed(1);
+      const item = document.createElement('div');
+      item.className = 'legend-item';
+      item.style.cursor = 'default';
+      item.innerHTML = `
+        <div class="legend-dot" style="background:${colors[i]}"></div>
+        <span class="legend-name" style="text-decoration:none">${label === 'Yes' ? 'Attended grad school' : 'Did not attend'}</span>
+        <span class="legend-pct">${pct}%</span>
+        <span class="legend-count">${count}</span>
+      `;
+      legend.appendChild(item);
+    });
+  }
+
   // ── Load data ─────────────────────────────────────────────────────────────
   fetch('alumniCompSectorandJobSector.csv')
     .then(res => {
       if (!res.ok) throw new Error('Could not load CSV');
       return res.text();
     })
-    .then(text => {
-      const data = parseCSV(text);
+    .then(text => Promise.all([
+      Promise.resolve(text),
+      fetch('justGradSchool.csv').then(r => r.ok ? r.text() : Promise.reject('Could not load grad CSV'))
+    ]))
+    .then(([sectorText, gradText]) => {
+      const data = parseCSV(sectorText);
+      const gradData = parseGradCSV(gradText);
       buildColorMap(data);
       const classes = [...new Set(data.map(d => d.year))].filter(y => !isNaN(y)).sort();
 
-      // null = All Years, otherwise a specific year
       let currentYear = null;
-      let currentField = 'job';
+      let currentField = 'job'; // 'job', 'comp', or 'grad'
 
       document.getElementById('loading').style.display = 'none';
       document.getElementById('app').style.display = 'block';
 
       const slider = document.getElementById('classSlider');
-      slider.max = classes.length; // index 0 = All, 1..n = each year
+      slider.max = classes.length;
 
-      // Build year ticks: "All" first, then each year
       const yearTicks = document.getElementById('yearTicks');
 
       const allSpan = document.createElement('span');
@@ -746,28 +857,37 @@
       });
 
       function updateYear(idx) {
-        // idx 0 = All Years (null), idx 1+ = classes[idx-1]
         currentYear = idx === 0 ? null : classes[idx - 1];
         document.getElementById('yearDisplay').textContent = idx === 0 ? 'All' : currentYear;
         document.querySelectorAll('.year-ticks span').forEach((s, i) => {
           s.classList.toggle('active', i === idx);
         });
-        buildChart(data, currentYear, currentField);
+        if (currentField === 'grad') {
+          buildGradChart(gradData, currentYear);
+        } else {
+          buildChart(data, currentYear, currentField);
+        }
       }
 
       function updateField(field) {
         currentField = field;
         document.getElementById('btnComp').classList.toggle('active', field === 'comp');
         document.getElementById('btnJob').classList.toggle('active', field === 'job');
+        document.getElementById('btnGrad').classList.toggle('active', field === 'grad');
         document.getElementById('compNote').style.display = field === 'comp' ? 'block' : 'none';
-        buildChart(data, currentYear, currentField);
+        if (field === 'grad') {
+          buildGradChart(gradData, currentYear);
+        } else {
+          buildChart(data, currentYear, field);
+        }
       }
 
       slider.addEventListener('input', () => updateYear(parseInt(slider.value)));
       document.getElementById('btnComp').addEventListener('click', () => updateField('comp'));
       document.getElementById('btnJob').addEventListener('click', () => updateField('job'));
+      document.getElementById('btnGrad').addEventListener('click', () => updateField('grad'));
 
-      updateYear(0); // start on All Years
+      updateYear(0);
     })
     .catch(err => {
       document.getElementById('loading').textContent = 'Error loading data: ' + err.message;
